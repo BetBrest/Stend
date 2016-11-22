@@ -1,13 +1,10 @@
  // PIC18F6722
  //начало проекта 09.2008. Проект разрабатывался в среде mikroC V8.1
-// Расширено до 30 типов сеялок, внесена версия программы в режиме отладки 
- //стенд проверки пультов АСКБ
+ //контроллер управляет работой системы АСКВ
  //подключены следующие переферийные устройства:
  /*     -LCD        PORTD
         -Клавиатура PORTB
-        -I2C        PORTC                                                      
-
-
+        -I2C        PORTC
 
   */
 const char cca_ver[]            = "Version  2.03   "; //Версия программы.
@@ -15,7 +12,7 @@ const char cca_pus[]            = "                "; //пусто
 const char cca_tip[]            = "Tёѕ:";             //Тип:
 const char cca_rab[]            = "Pe¶ёј:";           //Режим:
 const char cca_std[]            = "CїeЅг ѕpoіepєё "; //Стенд проверки
-const char cca_prv[]            = "Ёy»Дїoі ACK v.1";//Пультов ACUB v.1
+const char cca_prv[]            = "Ёy»Дїoі ACKB v.1" ;//Пультов ACUB v.1
 const char cca_vkl[]            = "BK§ ";             //ВКЛ
 const char cca_vik[]            = "B®K§";             //ВЫКЛ
 const char cca_izd[]            = "B® OP TҐЁA";       //ВЫБОР ТИПА
@@ -25,7 +22,7 @@ const char cca_eeprom[]         = "EEPROM";           //
 const char cca_ga[]             = "Ўa ";              //Га
 const char cca_zgr[]            = "¤AЎP©¤KA";         //ЗАГРУЗКА
 const char cca_dnh[]            = "аAHH®X";           //ДАННЫХ
-const char cca_prb[]            = "         ";      //пусто     
+const char cca_prb[]            = "           ";      //пусто
 const char cca_prbb[]            = "     ";           //пусто
 const char cca_zb[]            = "Ko»-іo ·yІ.";       //Введите количество зубьев
 const char cca_zh[]            = "¬ёp. єo»eё";        //Введите  ширину колеи
@@ -69,17 +66,17 @@ const char cca_tip31[]           = "PyАЅo№   ";           // Ручной ввод
   char txt3[3];
   char txt4[4];
   char txt2[2];
-  char txt1[1];
-  unsigned long  imp, frt=1, ch=1, cl=0, pl=0, zd=0, zb=0, Typ_izdelia=0;  //zb-число зубьеы. Остальные переменные для циклов
-  int rzrd1=0, rzrd2=0, rzrd3=0, rzrd4=0, rzrd5=0;      //Разряды чисел
-  double float ob=0, dl=0.1E+0, zh=0, nl=0.1E+0, ga=0;  //оборот колеса. длинна колеи. ширина колеи. гектары
+   unsigned short i = 0;
+  unsigned long  ttr, imp, frt=1, ch=1, cl=0, pl=0, zd=0, zb=0, Typ_izdelia=0;
+  int nft,  prn;
+  double float ob=0, dl=0.1E+0, zh=0, nl=0.1E+0, ga=0;
   char tip;
   unsigned short count_warn,warning;
                  #define   warning_0      warning.F0
   unsigned int   adres_24C, adres_24C_rd, ch_im ;
-  unsigned short  page_save, old_alarm_0, old_alarm_1, old_alarm_2, old_alarm_3, ALARM__0, ALARM__1, ALARM__2;
+  unsigned short page_save, old_alarm_0, old_alarm_1, old_alarm_2, old_alarm_3, ALARM__0, ALARM__1, ALARM__2;
  unsigned short push, old_0, old_1, old_2, old_3, old_4, old_5, old_6, old_7, old_8, jdem, jdem1, jdem2, jdem3;
- unsigned short flag_t, flag_ta, poz_kur=1, kurs;
+ unsigned short flag_t, flag_ta, poz_kur, kurs;
                 #define d_kursor     kurs.F0
                 #define m_kursor     kurs.F1
                 #define y_kursor     kurs.F2
@@ -152,8 +149,8 @@ void strcp_c(char *str1, const char *cstr2) {
   } while (str1[i++]);}
 //------------------------------------------------------------------------------
 
-                                
-short keypad (void){                                //Инициализация клавиатуры
+
+short keypad (void){
   if (Button(&PORTB, 5, 1, 1)) {old_0 = 1;}
   if (old_0 && Button(&PORTB, 5, 1, 0)) {
     push=1;
@@ -217,21 +214,21 @@ else{INTCON=0b11000000;}
          if(temp_Per_CCP==3){rez_CCP2=0xFFFF-old_CCP2; rez_CCP2+=0x1FFFE; rez_CCP2+=temp_CCP; }
     old_CCP2=temp_CCP;
  }
- }          
+ }
  void main()
   {
    imp=0;
    LVDCON=0b00011101;
    Delay_ms(500);
-     
+
  MEMCON.EBDIS = 1;
  ADCON1=0x0E;
  ADCON2=0xBA;
  TRISA=0xFF;
  TRISB=0xFF;
- TRISC=0b00011111;                  //                               
- TRISE=0b00000000;                  //   Инициализация портов вывода/записи
- TRISF=0b00000000;                  //                                                                                                                                                                           ;
+ TRISC=0b00011111;
+ TRISE=0b00000000;
+ TRISF=0b00000000;                                                                                                                                                                                             ;
   PORTE.F0=0;
   PORTE.F1=0;
   PORTE.F2=1;
@@ -250,7 +247,7 @@ else{INTCON=0b11000000;}
    I2C_Init(20000);
    RCON.F7=1; IPR1.F3=1;
    PIR2.LVDIF = 0;
-                    
+
    INTCON=0b11000000;
    PIE1=0b00000000;
    PIE2=0b00000000;
@@ -261,20 +258,20 @@ start:
 
 //------------------------------------------------------------------------------
  switch(page){
-      case 1:  //Страница 1:Вывод страртовой страницы и пожача звукового сигнала.
-              strcp_c(txt_msg, cca_std); LCD_Custom_Out(1,2,txt_msg);
-              strcp_c(txt_msg, cca_prv); LCD_Custom_Out(2,2,txt_msg); 
-              Delay_ms(500);
+      case 1:
+              strcp_c(txt_msg, cca_std); LCD_Custom_Out(1,1,txt_msg);
+              strcp_c(txt_msg, cca_prv); LCD_Custom_Out(2,1,txt_msg);
+              Delay_ms(2000);
               PORTE.F1=1;
-              Delay_ms(200);
+              Delay_ms(300);
               PORTE.F1=0;
               Lcd_Custom_Cmd(Lcd_Clear);
               page=2;push=0;
         break; //---------------------------------------------------------------
-      case 2: //Страница 2:Выбор типа сеялки 
+      case 2: //----------------------------------------------------------------
                  strcp_c(txt_msg, cca_izd); LCD_Custom_Out(1,4,txt_msg);
                  strcp_c(txt_msg, cca_tip); LCD_Custom_Out(2,1,txt_msg);
-                switch(Typ_izdelia){//Типы сеялок и их параметры
+                switch(Typ_izdelia){
                 case 1:  strcp_c(txt_msg, cca_tip1);  LCD_Custom_Out(2,6,txt_msg); zb=12; imp=1820; cl=1820; dl=2,198; zh=3; ob=151,653;break;
                 case 2:  strcp_c(txt_msg, cca_tip2);  LCD_Custom_Out(2,6,txt_msg); zb=12; imp=1809; cl=1809; dl=2,21056; zh=3; ob=150,791; break;
                 case 3:  strcp_c(txt_msg, cca_tip3);  LCD_Custom_Out(2,6,txt_msg); zb=12; imp=1809; cl=1809; dl=2,21056; zh=3; ob=150,791;break;
@@ -306,57 +303,59 @@ start:
                 case 29:  strcp_c(txt_msg, cca_tip29);  LCD_Custom_Out(2,6,txt_msg); zb=15; imp=1137; cl=1137; dl=2,198; zh=6; ob=75,8265;break;
                 case 30:  strcp_c(txt_msg, cca_tip30);  LCD_Custom_Out(2,6,txt_msg); zb=13; imp=1479; cl=1479; dl=2,198; zh=4; ob=113,74;break;
                 case 31:  strcp_c(txt_msg, cca_tip31);  LCD_Custom_Out(2,6,txt_msg);  imp=0; break;
-                } 
-        keypad(); //Выбор контретной сеялки и загрузка данных
+                }
+        keypad();
               if(kp==3){Typ_izdelia +=1;push=0;page=2;} if(Typ_izdelia>31){Typ_izdelia=1;}
-              if(kp==4){Typ_izdelia -=1;push=0;page=2;} if(Typ_izdelia<1){Typ_izdelia=31;}    
-              if(kp==5){ if(Typ_izdelia==31){ Lcd_Custom_Cmd(Lcd_Clear);  
+              if(kp==4){Typ_izdelia -=1;push=0;page=2;} if(Typ_izdelia<1){Typ_izdelia=31;}
+              if(kp==5){ if(Typ_izdelia==31){ Lcd_Custom_Cmd(Lcd_Clear);
                                               strcp_c(txt_msg, cca_zgr); LCD_Custom_Out(1,5,txt_msg);
                                               strcp_c(txt_msg, cca_dnh); LCD_Custom_Out(2,6,txt_msg);
                                               Delay_ms(1000);
                                               Lcd_Custom_Cmd(Lcd_Clear);page=5;push=0;break;}
-                         Lcd_Custom_Cmd(Lcd_Clear);  
+                         Lcd_Custom_Cmd(Lcd_Clear);
                          strcp_c(txt_msg, cca_zgr); LCD_Custom_Out(1,5,txt_msg);
                          strcp_c(txt_msg, cca_dnh); LCD_Custom_Out(2,6,txt_msg);
                          Delay_ms(1000);
                         Lcd_Custom_Cmd(Lcd_Clear);
                         page=3;
-                        push=0;}              
+                        push=0;}
        break; //---------------------------------------------------------------
-      case 3: //Страница 3: Выбор количества гектаров и сообветствующее им количество импульсов.
-                 strcp_c(txt_msg, cca_imp); LCD_Custom_Out(1,14,txt_msg);  
-                 strcp_c(txt_msg, cca_Ga); LCD_Custom_Out(2,14,txt_msg);               
-                 if (kp==3){nl+=0.1E+0;push=0;imp=imp+cl;frt=frt+1;//nl-гектары
+      case 3: //----------------------------------------------------------------
+
+                 strcp_c(txt_msg, cca_imp); LCD_Custom_Out(1,14,txt_msg);
+                 strcp_c(txt_msg, cca_Ga); LCD_Custom_Out(2,14,txt_msg);
+                 if (kp==3){nl+=0.1E+0;push=0;imp=imp+cl;frt=frt+1;
                             strcp_c(txt_msg, cca_prb); LCD_Custom_Out(1,1,txt_msg);
-                            strcp_c(txt_msg, cca_prb); LCD_Custom_Out(2,1,txt_msg);}  
-                 if (kp==4){nl-=0.1E+0;push=0;imp=imp-cl;frt=frt-1;//frt-значение необходимое по формуле 
+                            strcp_c(txt_msg, cca_prb); LCD_Custom_Out(2,1,txt_msg);}
+                 if (kp==4){nl-=0.1E+0;push=0;imp=imp-cl;frt=frt-1;
                             strcp_c(txt_msg, cca_prb); LCD_Custom_Out(1,1,txt_msg);
-                            strcp_c(txt_msg, cca_prb); LCD_Custom_Out(2,1,txt_msg);} 
+                            strcp_c(txt_msg, cca_prb); LCD_Custom_Out(2,1,txt_msg);}
                             if(nl<0.1E+0){nl=0;imp=0;frt=frt;}
-                 LongToStr(imp,txt_msg); LCD_Custom_Out(1,1,txt_msg);           
+                 LongToStr(imp,txt_msg); LCD_Custom_Out(1,1,txt_msg);
                  *txt_msg='\0';
                  sprintf(txt_msg, "%3g", nl); LCD_Custom_Out(2,1,txt_msg);
                  strcp_c(txt_msg, cca_prbb);LCD_Custom_Out(2,5,txt_msg);
                  *txt_msg='\0';
                  if (kp==5){nl==nl;imp==imp;page=4;push=0;Lcd_Custom_Cmd(Lcd_Clear);}
                  if (kp==1){Lcd_Custom_Cmd(Lcd_Clear);page=2;push=0;}
-                 if (kp==2){Lcd_Custom_Cmd(Lcd_Clear);page=2;push=0;} 
+                 if (kp==2){Lcd_Custom_Cmd(Lcd_Clear);page=2;push=0;}
         break; //---------------------------------------------------------------
-      case 4: //Страница 4:Отправка импульсов и подсчет гектаров.
+      case 4: //----------------------------------------------------------------
                  strcp_c(txt_msg, cca_Ga); LCD_Custom_Out(1,14,txt_msg);
-                 strcp_c(txt_msg, cca_imp); LCD_Custom_Out(2,14,txt_msg);                 
+                 strcp_c(txt_msg, cca_imp); LCD_Custom_Out(2,14,txt_msg);
+
                  if(kp==5){Lcd_Custom_Cmd(Lcd_Clear);page=2;push=0;}
-                 while (ch<imp) 
+                 while (ch<imp)
                         {
                         kp=keypad();
                         if (kp==5){kp=0;Delay_ms(20);while(kp!=5){kp=keypad();Delay_ms(10);}}
                         if (kp==6){break;}
-                        ch=ch++;                        
-                        PORTF.F0=0; //Отпревка импульсов
+                        ch=ch++;
+                        PORTF.F0=0;
                         Delay_ms(9);
                         PORTF.F0=1;
                         Delay_ms(1);
-                        ga=((ch/zb)*dl*zh)/10000+0.01*frt;//Формулы вычисления количества гектаров.
+                        ga=((ch/zb)*dl*zh)/10000+0.01*frt;
                         sprintf(txt_msg, "%3g", ga);
                         LCD_Custom_Out(1,1,txt_msg);
                         *txt_msg='\0';
@@ -365,8 +364,8 @@ start:
                         *txt_msg='\0';
                         strcp_c(txt_msg, cca_prbb); LCD_Custom_Out(1,8,txt_msg);
                         }
-                        stop1: 
-                        while (zd<=2) //Звуковой сигнал после окончания работы
+                        stop1:
+                        while (zd<=2)
                                 {
                                 zd=zd++;
                                 PORTE.F1=1;
@@ -374,77 +373,260 @@ start:
                                 PORTE.F1=0;
                                 Delay_ms(200);}
                         imp=0, ch=1, zb=0, Typ_izdelia=1, nl=0.1;
-                        PORTF.F0=1; 
-                        PORTE.F1=0;                 
-        break; //---------------------------------------------------------------    
-        case 5://Страница 5(Ручная) Настройка числа импульсов 
-              keypad(); imp=0;
+                        PORTF.F0=1;
+                        PORTE.F1=0;
+        break; //---------------------------------------------------------------
+        case 5:
+
+        strcp_c(txt_msg,"Vvedite impulsy:" ); LCD_Custom_Out(1,1,txt_msg);
+        imp=1;
+        sprintf(txt_msg, "%u", imp); LCD_Custom_Out(2,5,txt_msg);
+
+        Lcd_Custom_Cmd(LCD_UNDERLINE_ON);
+        Lcd_Custom_Cmd(LCD_BLINK_CURSOR_ON);
+        Lcd_Custom_Cmd(LCD_MOVE_CURSOR_LEFT);
+        poz_kur=5;
+
+
+        while(1)
+        {
+         kp=keypad();
+         if(kp==5)  // кнопка ввод
+         {
+          push=0;
+          break;
+         }
+         if(kp==4)  // кнопка лево
+         {
+          poz_kur--;
+          if (poz_kur==0)
+          {
+           poz_kur=1;
+          }
+          else
+          Lcd_Custom_Cmd(LCD_MOVE_CURSOR_LEFT);
+          push=0;
+
+         }
+         if(kp==3)  //кнопка право
+         {
+          poz_kur++;
+          if (poz_kur>5)
+          {
+           poz_kur=5;
+          }
+          else
+          Lcd_Custom_Cmd(LCD_MOVE_CURSOR_RIGHT);
+          push=0;
+
+         }
+
+         if(kp==1)  //кнопка вверх
+         {
+           switch ( poz_kur)   // в зависимости  от позиции  курсора добавляем единицы, десятки сотни
+           {
+            case 1:
+            imp+=10000;
+            break;
+
+            case 2:
+            imp+=1000;
+            break;
+
+            case 3:
+            imp+=100;
+            break;
+
+            case 4:
+            imp+=10;
+            break;
+
+            case 5:
+            imp++;
+            break;
+           }
+
+           if(imp>99999) // Ограничение на входное число
+            {
+             imp=99999;
+            }
+
+
+          // Вывод импульсов в зависимости от размера числа
+          if (imp<10)
+          {
+           sprintf(txt5, "%u", imp); LCD_Custom_Out(2,5,txt5);
+          }
+          else
+          {
+           if (imp<100)
+           {
+            sprintf(txt5, "%u", imp); LCD_Custom_Out(2,4,txt5);
+           }
+           else
+           {
+            if (imp<1000)
+            {
+             sprintf(txt5, "%u", imp); LCD_Custom_Out(2,3,txt5);
+            }
+            else
+            {
+             if (imp<10000)
+             {
+              sprintf(txt5, "%u", imp); LCD_Custom_Out(2,2,txt5);
+             }
+             else
+             {
+              if (imp<100000)
+              {
+               sprintf(txt5, "%lu", imp); LCD_Custom_Out(2,1,txt5);
+              }
+             }
+            }
+           }
+          }
+          //вовзрат курсора на прежнее место
+          Lcd_Custom_Cmd(LCD_SECOND_ROW);
+          for( i=1;i<poz_kur;i++)
+          {
+           Lcd_Custom_Cmd(LCD_MOVE_CURSOR_RIGHT);
+          }
+          push=0;
+         }
+
+         if(kp==2)  //кнопка вниз
+         {
+          switch ( poz_kur)   // в зависимости  от позиции  курсора добавляем единицы, десятки сотни
+           {
+            case 1:
+            if (imp>=10001)
+            {
+            imp-=10000;
+            }
+            break;
+
+            case 2:
+            if (imp>=1001)
+            {
+            imp-=1000;
+            }
+            break;
+
+            case 3:
+            if (imp>=101)
+            {
+             imp-=100;
+            }
+            break;
+
+            case 4:
+            if (imp>=11)
+            {
+             imp-=10;
+            }
+            break;
+
+            case 5:
+            if(imp>=1)
+            {
+             imp--;
+            }
+            break;
+           }
+
+           if(imp<1) // Ограничение на входное число
+            {
+             imp=1;
+            }
+
+
+          // Вывод импульсов в зависимости от размера числа
+          strcp_c(txt5,"     " );   LCD_Custom_Out(2,1,txt5);//очистка  старого значения
+          if (imp<10)
+          {
+           sprintf(txt5, "%u", imp); LCD_Custom_Out(2,5,txt5);
+          }
+          else
+          {
+           if (imp<100)
+           {
+            sprintf(txt5, "%u", imp); LCD_Custom_Out(2,4,txt5);
+           }
+           else
+           {
+            if (imp<1000)
+            {
+             sprintf(txt5, "%u", imp); LCD_Custom_Out(2,3,txt5);
+            }
+            else
+            {
+             if (imp<10000)
+             {
+              sprintf(txt5, "%u", imp); LCD_Custom_Out(2,2,txt5);
+             }
+             else
+             {
+              if (imp<100000)
+              {
+               sprintf(txt5, "%lu", imp); LCD_Custom_Out(2,1,txt5);
+              }
+             }
+            }
+           }
+          }
+          //вовзрат курсора на прежнее место
+          Lcd_Custom_Cmd(LCD_SECOND_ROW);
+          for( i=1;i<poz_kur;i++)
+          {
+           Lcd_Custom_Cmd(LCD_MOVE_CURSOR_RIGHT);
+          }
+          push=0;
+
+         }
+        }
+        page=6;
+
+        break;
+            /*  prn=1;ttr=imp;
               strcp_c(txt_msg, cca_imp); LCD_Custom_Out(1,1,txt_msg);
-              Lcd_Custom_Cmd(LCD_UNDERLINE_ON); //Подчеркивание курсора
-              if(kp==3){if(poz_kur<=5){poz_kur++;Lcd_Custom_Cmd(LCD_MOVE_CURSOR_RIGHT);push=0;}}
-              if(kp==4){if(poz_kur>0){poz_kur--;Lcd_Custom_Cmd(LCD_MOVE_CURSOR_LEFT); push=0;}}
-              if(kp==1){switch(poz_kur){
-                       case 1: //--------------------------------------
-                              if (rzrd5<=9){rzrd5++;push=0;if(rzrd5>9){rzrd5=0;}sprintf(txt1,"%u", rzrd5);LCD_Custom_Out(1,5,txt1);Lcd_Custom_Cmd(LCD_MOVE_CURSOR_LEFT);}
-                       break;//--------------------------------------
-                       case 2: //--------------------------------------
-                              if (rzrd4<=9){rzrd4++;push=0;if(rzrd4>9){rzrd4=0;}sprintf(txt1,"%u", rzrd4);LCD_Custom_Out(1,6,txt1);Lcd_Custom_Cmd(LCD_MOVE_CURSOR_LEFT);}
-                       break;//--------------------------------------
-                       case 3: //--------------------------------------
-                              if (rzrd3<=9){rzrd3++;push=0;if(rzrd3>9){rzrd3=0;}sprintf(txt1,"%u", rzrd3);LCD_Custom_Out(1,7,txt1);Lcd_Custom_Cmd(LCD_MOVE_CURSOR_LEFT);}
-                       break;//--------------------------------------
-                       case 4: //--------------------------------------
-                              if (rzrd2<=9){rzrd2++;push=0;if(rzrd2>9){rzrd2=0;}sprintf(txt1,"%u", rzrd2);LCD_Custom_Out(1,8,txt1);Lcd_Custom_Cmd(LCD_MOVE_CURSOR_LEFT);}
-                       break;//--------------------------------------
-                       case 5: //--------------------------------------
-                              if (rzrd1<=9){rzrd1++;push=0;if(rzrd1>9){rzrd1=0;}sprintf(txt1, "%u" , rzrd1);LCD_Custom_Out(1,9,txt1);Lcd_Custom_Cmd(LCD_MOVE_CURSOR_LEFT);}
-                       break;//--------------------------------------
-                       push=0;}}       
-               if(kp==2){switch(poz_kur){
-                       case 1: //--------------------------------------
-                              if (rzrd5>=0){rzrd5--;push=0;if(rzrd5<0){rzrd5=9;}sprintf(txt1,"%u", rzrd5);LCD_Custom_Out(1,5,txt1);Lcd_Custom_Cmd(LCD_MOVE_CURSOR_LEFT);}
-                       break;//--------------------------------------
-                       case 2: //--------------------------------------
-                              if (rzrd4>=0){rzrd4--;push=0;if(rzrd4<0){rzrd4=9;}sprintf(txt1,"%u", rzrd4);LCD_Custom_Out(1,6,txt1);Lcd_Custom_Cmd(LCD_MOVE_CURSOR_LEFT);}
-                       break;//--------------------------------------
-                       case 3: //--------------------------------------
-                              if (rzrd3>=0){rzrd3--;push=0;if(rzrd3<0){rzrd3=9;}sprintf(txt1,"%u", rzrd3);LCD_Custom_Out(1,7,txt1);Lcd_Custom_Cmd(LCD_MOVE_CURSOR_LEFT);}
-                       break;//--------------------------------------
-                       case 4: //--------------------------------------
-                              if (rzrd2>=0){rzrd2--;push=0;if(rzrd2<0){rzrd2=9;}sprintf(txt1,"%u", rzrd2);LCD_Custom_Out(1,8,txt1);Lcd_Custom_Cmd(LCD_MOVE_CURSOR_LEFT);}
-                       break;//--------------------------------------
-                       case 5: //--------------------------------------
-                              if (rzrd1>=0){rzrd1--;push=0;if(rzrd1<0){rzrd1=9;}sprintf(txt1,"%u", rzrd1);LCD_Custom_Out(1,9,txt1);Lcd_Custom_Cmd(LCD_MOVE_CURSOR_LEFT);}
-                       break;//--------------------------------------
-                       push=0;}}
-              if(kp==5){imp=10000*rzrd5+1000*rzrd4+100*rzrd3+10*rzrd2+rzrd1;Lcd_Custom_Cmd(Lcd_Clear);page=6;push=0;} //Формула подсчета импульсов.     
-        break;
-        case 6://Страница6:(Ручная) Выбор числа зубьев
-              strcp_c(txt_msg, cca_zb); LCD_Custom_Out(1,1,txt_msg); 
+start12:
               keypad();
-              if(kp==3){zb +=1;push=0;Lcd_Custom_Cmd(Lcd_Clear);} 
-              if(kp==4){zb -=1;push=0;Lcd_Custom_Cmd(Lcd_Clear);}
+              *txt_msg='\0';
+              if(kp==3){nft +=1;push=0; if(nft>9){nft=0;}}
+              if(kp==4){nft -=1;push=0; if(nft<0){nft=9;}}
+              sprintf(txt_msg, "%1u", nft); LCD_Custom_Out(2,(6-prn),txt_msg);
+              *txt_msg='\0';
+              if(kp==1){prn--;Lcd_Custom_Cmd(Lcd_Clear);goto start12;}
+              if(kp==2){page=2;push=0;;Lcd_Custom_Cmd(Lcd_Clear);}
+              if(kp==6){page=6;push=0;Lcd_Custom_Cmd(Lcd_Clear);}
+              if(kp==5){imp=imp+ttr+((nft*(pow(10,prn)))/10+1); Lcd_Custom_Cmd(Lcd_Clear);
+              prn++;if(prn>5){prn=1;} goto start12;}
+        break;  */
+        case 6:
+              strcp_c(txt_msg, cca_zb); LCD_Custom_Out(1,1,txt_msg);
+              keypad();
+              if(kp==3){zb +=1;push=0;}
+              if(kp==4){zb -=1;push=0;}
               sprintf(txt_msg, "%7u", zb); LCD_Custom_Out(2,1,txt_msg);
-              *txt_msg='\0';     
-              if(kp==5){zb==zb;page=7;push=0;Lcd_Custom_Cmd(Lcd_Clear);} 
+              *txt_msg='\0';
+              if(kp==5){zb==zb;page=7;push=0;Lcd_Custom_Cmd(Lcd_Clear);}
         break;
-        case 7://Страница 7:(Ручная) Выбор ширины колеи
+        case 7:
               strcp_c(txt_msg, cca_zh); LCD_Custom_Out(1,1,txt_msg);
-              strcp_c(txt_msg,cca_prb); LCD_Custom_Out(2,4,txt_msg);   
               keypad();
-              if(kp==3){zh +=0.5E+0;push=0;Lcd_Custom_Cmd(Lcd_Clear);} 
-              if(kp==4){zh -=0.5E+0;push=0;Lcd_Custom_Cmd(Lcd_Clear);}
+              if(kp==3){zh +=0.5E+0;push=0;}
+              if(kp==4){zh -=0.5E+0;push=0;}
               sprintf(txt_msg, "%3g", zh); LCD_Custom_Out(2,1,txt_msg);
               *txt_msg='\0';
               if(kp==5){zh==zh;page=8;push=0;Lcd_Custom_Cmd(Lcd_Clear);}
         break;
-        case 8: //Страница 8:(Ручная) Выбор длинны окружности колеса.
-              strcp_c(txt_msg, cca_dl); LCD_Custom_Out(1,1,txt_msg); 
+        case 8:
+              strcp_c(txt_msg, cca_dl); LCD_Custom_Out(1,1,txt_msg);
               keypad();
-              if(kp==3){dl +=0.1E+0;push=0;Lcd_Custom_Cmd(Lcd_Clear);} 
-              if(kp==4){dl -=0.1E+0;push=0;Lcd_Custom_Cmd(Lcd_Clear);}
-              strcp_c(txt_msg,cca_prb); LCD_Custom_Out(2,4,txt_msg);
-              sprintf(txt_msg, "%3g", dl);LCD_Custom_Out(2,1,txt_msg);    
+              if(kp==3){dl +=0.1E+0;push=0;}
+              if(kp==4){dl -=0.1E+0;push=0;}
+              sprintf(txt_msg, "%3g", dl);
+               LCD_Custom_Out(2,1,txt_msg);
               if(kp==5){dl==dl;page=4;push=0;Lcd_Custom_Cmd(Lcd_Clear);}
         break;
 }
